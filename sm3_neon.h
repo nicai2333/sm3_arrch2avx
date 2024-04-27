@@ -8,22 +8,16 @@
 // 假设有某些初始化和数据预处理部分
 
 uint32_t ll_bswap4(uint32_t a) {
-    return ((a >> 24) & 0x000000FF) | // 移动字节 0 到位置 3
-           ((a << 8) & 0x00FF0000) |  // 移动字节 1 到位置 2
-           ((a >> 8) & 0x0000FF00) |  // 移动字节 2 到位置 1
-           ((a << 24) & 0xFF000000);  // 移动字节 3 到位置 0
+    uint32x2_t tmp = vdup_n_u32(a); // 将 a 复制到 NEON 寄存器的两个32位元素中
+    uint8x8_t reversed = vrev32_u8(vreinterpret_u8_u32(tmp)); // 使用 vrev32_u8 对每个32位块的字节进行反转
+    return vget_lane_u32(vreinterpret_u32_u8(reversed), 0); // 提取反转后的结果
 }
 
 // 字节翻转函数，用于 64 位无符号整数
 uint64_t ll_bswap8(uint64_t a) {
-    return ((a >> 56) & 0x00000000000000FF) | // 移动字节 0 到位置 7
-           ((a << 40) & 0x00FF000000000000) | // 移动字节 1 到位置 6
-           ((a << 24) & 0x0000FF0000000000) | // 移动字节 2 到位置 5
-           ((a << 8)  & 0x000000FF00000000) | // 移动字节 3 到位置 4
-           ((a >> 8)  & 0x00000000FF000000) | // 移动字节 4 到位置 3
-           ((a >> 24) & 0x0000000000FF0000) | // 移动字节 5 到位置 2
-           ((a >> 40) & 0x000000000000FF00) | // 移动字节 6 到位置 1
-           ((a >> 56) & 0x00000000000000FF);  // 移动字节 7 到位置 0
+    uint64x1_t tmp = vdup_n_u64(a); // 将 a 复制到 NEON 寄存器
+    uint8x8_t reversed = vrev64_u8(vreinterpret_u8_u64(tmp)); // 使用 vrev64_u8 对64位的字节进行反转
+    return vget_lane_u64(vreinterpret_u64_u8(reversed), 0); // 提取反转后的结果
 }
 
 static const uint32_t Tj[] = {
@@ -44,7 +38,7 @@ static const uint32_t Tj[] = {
     0x8A7A879D, 0x14F50F3B, 0x29EA1E76, 0x53D43CEC,
     0xA7A879D8, 0x4F50F3B1, 0x9EA1E762, 0x3D43CEC5
 };
-int j=0;
+//int j=0;
 
 //turn right
 uint32x4_t ROR32(uint32x4_t input, int shift) {
@@ -63,7 +57,7 @@ uint32x4_t ROR32(uint32x4_t input, int shift) {
 }
 
 uint32_t rotate_right(uint32_t n, int shift) {
-    return (n >> 17) | (n << (32 - 17));
+    return (n >> shift) | (n << (32 - shift));
 }
 
 void circular_shift(uint32x4_t M0, uint32x4_t M1, uint32x4_t M2, uint32x4_t M3) {
@@ -75,7 +69,7 @@ void circular_shift(uint32x4_t M0, uint32x4_t M1, uint32x4_t M2, uint32x4_t M3) 
 }
 
 void FIRST_16_ROUNDS_AND_SCHED_1(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     XFER = veorq_u32(X0, X1);                // WW
     uint32_t t0 = rotate_right(A, 20);                         // A <<< 12 (Adjusted to 20 based on your input)
@@ -110,7 +104,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void FIRST_16_ROUNDS_AND_SCHED_2(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     uint32_t t0 = rotate_right(A, 20);                                   // A <<< 12 (corrected to ROR 20)
     uint32_t t1 = A ^ B;                                          // A ^ B
@@ -144,7 +138,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void FIRST_16_ROUNDS_AND_SCHED_3(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     uint32_t t0 = rotate_right(A, 20);                                 // A <<< 12 (corrected to ROR 20)
     uint32_t t1 = A ^ B;                                        // A ^ B
@@ -176,7 +170,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void FIRST_16_ROUNDS_AND_SCHED_4(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
 
     uint32_t W = vgetq_lane_u32(X0, 3); // W[-13]
@@ -193,7 +187,8 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
     uint32_t t4 = t2 + t3;              // (A <<< 12) + E + (Tj <<< j)
     t5 = t5 ^ G;                            // GG(E, F, G)
     uint32_t T2 = vgetq_lane_u32(XTMP0, 3); // (W[-10] <<< 7) ^ W[-3]
-    T1 = rotate_right(T1 ^ T0, 17);            // Z = W[-13] ^ W[-6] ^ (W[0] <<< 15)
+    T0 = rotate_right(T0,17);
+    T1 = T1 ^ T0;            // Z = W[-13] ^ W[-6] ^ (W[0] <<< 15)
     H = H + W;                             // H + Wj
     t4 = rotate_right(t4, 25);                 // SS1
     D = D + t1;                            // FF(A, B, C) + D
@@ -216,7 +211,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void SECOND_36_ROUNDS_AND_SCHED_1(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5, T0, T1, W;
 
@@ -225,7 +220,8 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
     t0 = rotate_right(A, 20);                                             // A <<< 12
     XTMP0 = vextq_u32(X0, X1, 3);                                  // (W[-13],W[-12],W[-11],XXX)
     t1 = B | C;                                                    // B | C
-    t3 = Tj[j++];                                  // Tj <<< j, assume loaded from a memory address
+    t3 = Tj[j];                                  // Tj <<< j, assume loaded from a memory address
+    j+=1;
     t2 = t0 + E;                                                  // (A <<< 12) + E
     T0 = B & C;                                                    // B & C
     //XTMP1 = vshlq_n_u32(XTMP0, 7);                                 // ((W[-13],W[-12],W[-11],XXX) << 7)
@@ -258,7 +254,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void SECOND_36_ROUNDS_AND_SCHED_2(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5, T0, T1, W;
 
@@ -266,7 +262,8 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
     t0 = rotate_right(A, 20);                                             // A <<< 12
     //XTMP2 = vshlq_n_u32(XTMP1, 15);                                // (W[-3],W[-2],W[-1],XXX) << 15
     t1 = B | C;                                                    // B | C
-    t3 = Tj[j++];                                  // Tj <<< j, assume loaded from a memory address
+    t3 = Tj[j];                                  // Tj <<< j, assume loaded from a memory address
+    j+=1;
     t2 = t0 + E;                                                  // (A <<< 12) + E
     T0 = B & C;                                                    // B & C
     //XTMP1 = vshrq_n_u32(XTMP1, 17);                                // (W[-3],W[-2],W[-1],XXX) >> 17
@@ -299,7 +296,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void SECOND_36_ROUNDS_AND_SCHED_3(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5, T0, T1, W;
 
@@ -307,7 +304,8 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
     t0 = rotate_right(A, 20);                                             // A <<< 12
     //XTMP4 = vshrq_n_u32(XTMP1, 17);                                // P1(X), X >> 17
     t1 = B | C;                                                    // B | C
-    t3 = Tj[j++];                                  // Tj <<< j, assume loaded from a memory address
+    t3 = Tj[j];                                  // Tj <<< j, assume loaded from a memory address
+    j+=1;
     t2 = t0 + E;                                                  // (A <<< 12) + E
     T0 = B & C;                                                    // B & C
     XTMP3 = ROR32(XTMP1, 17);                               // P1(X), X <<< 15
@@ -340,7 +338,7 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
 }
 
 void SECOND_36_ROUNDS_AND_SCHED_4(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5)
+uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t XTMP3, uint32x4_t XTMP4, uint32x4_t XTMP5, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5, T0, T1, T2, T3, T4, W;
 
@@ -349,7 +347,8 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
     t0 = rotate_right(A, 20);                     // A <<< 12
     X0 = veorq_u32(XTMP1, XTMP0);          // W[0],W[1],W[2],XXX
     t1 = B | C;                            // B | C
-    t3 = Tj[j++];          // Tj <<< j, assume loaded from a memory address
+    t3 = Tj[j];          // Tj <<< j, assume loaded from a memory address
+    j+=1;
     t2 = t0 + E;                          // (A <<< 12) + E
     T0 = vgetq_lane_u32(X0, 0);            // W[0]
     T3 = B & C;                            // B & C
@@ -380,11 +379,11 @@ uint32x4_t XFER, uint32x4_t XTMP0, uint32x4_t XTMP1,uint32x4_t XTMP2, uint32x4_t
     T2 = T1 ^ T2;                              // W[3]
     D = D + W;                                // TT1 = FF(A, B, C) + D + SS2 + W'j
     H = H ^ t3;                              // P0(TT2)
-    vsetq_lane_u32(T2, X0, 3);             // W[0],W[1],W[2],W[3]
+    X0=vsetq_lane_u32(T2, X0, 3);             // W[0],W[1],W[2],W[3]
 }
 
 void THIRD_12_ROUNDS_WITHOUT_SCHED_1(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,\
-uint32x4_t XFER)
+uint32x4_t XFER, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5, W, T0, T1;
 
@@ -400,8 +399,8 @@ uint32x4_t XFER)
 
     // Assuming $TBL points to an array of uint32_t, we access it like this
     // This implies $TBL needs to be a globally accessible array
-    t3 = Tj[j++];               // Tj <<< j
-
+    t3 = Tj[j];               // Tj <<< j
+    j+=1;
     // Addition and masking operations
     t2 = t0 + E;              // (A <<< 12) + E
     t5 = F ^ G;              // F ^ G
@@ -431,7 +430,7 @@ uint32x4_t XFER)
     H = H ^ t3;                  // P0(TT2)
 }
 
-void THIRD_12_ROUNDS_WITHOUT_SCHED_2(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,uint32x4_t XFER)
+void THIRD_12_ROUNDS_WITHOUT_SCHED_2(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3, uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,uint32x4_t XFER, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5, W, T0, T1;
 
@@ -442,8 +441,8 @@ void THIRD_12_ROUNDS_WITHOUT_SCHED_2(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2
     T1 = A & t1;               // A & (B | C)
     W = vgetq_lane_u32(X0, 1); // Extracting the second 32-bit integer from X0 vector
 
-    t3 = Tj[j++];               // Tj <<< j
-
+    t3 = Tj[j];               // Tj <<< j
+    j+=1;
     // Additional computations
     t2 = t0 + E;              // (A <<< 12) + E
     t5 = F ^ G;               // F ^ G
@@ -473,15 +472,17 @@ void THIRD_12_ROUNDS_WITHOUT_SCHED_2(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2
 }
 
 void THIRD_12_ROUNDS_WITHOUT_SCHED_3(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3,
-                                     uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,uint32x4_t XFER) {
+                                     uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,uint32x4_t XFER, int j) {
     uint32_t t0, t1, t2, t3, t4, t5, T0, T1, W;
 
     t0 = rotate_right(A, 20);                  // A <<< 12
     t1 = B | C;               // B | C
-    t3 = Tj[j++];
+    t3 = Tj[j];
+    j+=1;
     t2 = t0 + E;              // (A <<< 12) + E
     T0 = B & C;               // B & C
     T1 = A & t1;              // A & (B | C)
+    W = vgetq_lane_u32(X0, 2);
     t5 = F ^ G;               // F ^ G
     t1 = T0 | T1;             // FF(A, B, C)
     t4 = t2 + t3;             // (A <<< 12) + E + (Tj <<< j)
@@ -504,14 +505,15 @@ void THIRD_12_ROUNDS_WITHOUT_SCHED_3(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2
 }
 
 void THIRD_12_ROUNDS_WITHOUT_SCHED_4(uint32x4_t X0, uint32x4_t X1, uint32x4_t X2, uint32x4_t X3,
-                                          uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,uint32x4_t XFER)
+                                          uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H,uint32x4_t XFER, int j)
 {
     uint32_t t0, t1, t2, t3, t4, t5;
     uint32_t T0, T1, W, WW;
 
     t0 = rotate_right(A, 20);              // A <<< 12
     t1 = B | C;                 // B | C
-    t3 = Tj[j++];  // Tj <<< j
+    t3 = Tj[j];  // Tj <<< j
+    j+=1;
     t2 = t0 + E;                // (A <<< 12) + E
     T0 = B & C;                 // B & C
     T1 = A & t1;                // A & (B | C)
@@ -579,6 +581,7 @@ void sm3_compress_neon(uint32_t digest[8], const uint8_t *buf, uint64_t nb) {
         M2 = vrev32q_u8(M2);
         M3 = vrev32q_u8(M3);
         }
+        int j=0;
 
         uint32x4_t X0=vreinterpretq_u32_u8(M0);
         uint32x4_t X1=vreinterpretq_u32_u8(M1);
@@ -591,42 +594,48 @@ void sm3_compress_neon(uint32_t digest[8], const uint8_t *buf, uint64_t nb) {
         // V0 = sm3_schedule(V0, X0, X1, X2, X3, ...);
         uint32x4_t XFER; uint32x4_t XTMP0; uint32x4_t XTMP1;uint32x4_t XTMP2; uint32x4_t XTMP3; uint32x4_t XTMP4; uint32x4_t XTMP5;
         for (int i = 0; i < 4; i++) {
-            FIRST_16_ROUNDS_AND_SCHED_1(X0, X1, X2, X3, A, B, C, D, E, F, G, H, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
-            FIRST_16_ROUNDS_AND_SCHED_2(X0, X1, X2, X3, D, A, B, C, H, E, F, G, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
-            FIRST_16_ROUNDS_AND_SCHED_3(X0, X1, X2, X3, C, D, A, B, G, H, E, F, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
-            FIRST_16_ROUNDS_AND_SCHED_4(X0, X1, X2, X3, B, C, D, A, F, G, H, E, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
+            FIRST_16_ROUNDS_AND_SCHED_1(X0, X1, X2, X3, A, B, C, D, E, F, G, H, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
+            FIRST_16_ROUNDS_AND_SCHED_2(X0, X1, X2, X3, D, A, B, C, H, E, F, G, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
+            FIRST_16_ROUNDS_AND_SCHED_3(X0, X1, X2, X3, C, D, A, B, G, H, E, F, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
+            FIRST_16_ROUNDS_AND_SCHED_4(X0, X1, X2, X3, B, C, D, A, F, G, H, E, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
             circular_shift(X0, X1, X2, X3);
         }
 
         for (int i = 0; i < 9; i++) {
-            SECOND_36_ROUNDS_AND_SCHED_1(X0, X1, X2, X3, A, B, C, D, E, F, G, H, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
-            SECOND_36_ROUNDS_AND_SCHED_2(X0, X1, X2, X3, D, A, B, C, H, E, F, G, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
-            SECOND_36_ROUNDS_AND_SCHED_3(X0, X1, X2, X3, C, D, A, B, G, H, E, F, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
-            SECOND_36_ROUNDS_AND_SCHED_4(X0, X1, X2, X3, B, C, D, A, F, G, H, E, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5);
+            SECOND_36_ROUNDS_AND_SCHED_1(X0, X1, X2, X3, A, B, C, D, E, F, G, H, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
+            SECOND_36_ROUNDS_AND_SCHED_2(X0, X1, X2, X3, D, A, B, C, H, E, F, G, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
+            SECOND_36_ROUNDS_AND_SCHED_3(X0, X1, X2, X3, C, D, A, B, G, H, E, F, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
+            SECOND_36_ROUNDS_AND_SCHED_4(X0, X1, X2, X3, B, C, D, A, F, G, H, E, XFER, XTMP0, XTMP1, XTMP2, XTMP3, XTMP4, XTMP5,j);
             circular_shift(X0, X1, X2, X3);
         }
 
         for (int i = 0; i < 3; i++) {
-            THIRD_12_ROUNDS_WITHOUT_SCHED_1(X0, X1, X2, X3, A, B, C, D, E, F, G, H, XFER);
-            THIRD_12_ROUNDS_WITHOUT_SCHED_2(X0, X1, X2, X3, D, A, B, C, H, E, F, G, XFER);
-            THIRD_12_ROUNDS_WITHOUT_SCHED_3(X0, X1, X2, X3, C, D, A, B, G, H, E, F, XFER);
-            THIRD_12_ROUNDS_WITHOUT_SCHED_4(X0, X1, X2, X3, B, C, D, A, F, G, H, E, XFER);
+            THIRD_12_ROUNDS_WITHOUT_SCHED_1(X0, X1, X2, X3, A, B, C, D, E, F, G, H, XFER,j);
+            THIRD_12_ROUNDS_WITHOUT_SCHED_2(X0, X1, X2, X3, D, A, B, C, H, E, F, G, XFER,j);
+            THIRD_12_ROUNDS_WITHOUT_SCHED_3(X0, X1, X2, X3, C, D, A, B, G, H, E, F, XFER,j);
+            THIRD_12_ROUNDS_WITHOUT_SCHED_4(X0, X1, X2, X3, B, C, D, A, F, G, H, E, XFER,j);
             circular_shift(X0, X1, X2, X3);
         }
         // 重复所需轮次和计划
+            a = a ^ A;
+            b = b ^ B;
+            c = c ^ C;
+            d = d ^ D;
+            e = e ^ E;
+            f = f ^ F;
+            g = g ^ G;
+            h = h ^ H;
+            A=a;
+            B=b;
+            C=c;
+            D=d;
+            E=e;
+            F=f;
+            G=g;
+            H=h;
     }
 
     // 完成处理：将计算的状态存回摘要
-
-    // 更新操作
-    a = a ^ A;
-    b = b ^ B;
-    c = c ^ C;
-    d = d ^ D;
-    e = e ^ E;
-    f = f ^ F;
-    g = g ^ G;
-    h = h ^ H;
 
     // 压缩完成后保存结果
     digest[0]=a;
