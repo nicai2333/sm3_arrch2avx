@@ -77,9 +77,9 @@ PIGGY_EXPORT int sm3_once(u8 digest[SM3_DIGEST_LENGTH], const u8 *msg, size_t ms
 }
 #endif
 
-// u32 ll_bswap4(const u32 a);
-// u64 ll_bswap8(const u64 a);
-// void sm3_compress_neon(u32 digest[8], const u8 *buf, u64 nb);
+uint32_t ll_bswap4(uint32_t a);
+uint64_t ll_bswap8(uint64_t a);
+void sm3_compress_neon(uint32_t digest[8], const uint8_t *buf, uint64_t nb);
 
 static const u8 PAD[64] = { 
     0x80, 0, 0, 0, 0, 0, 0, 0, 
