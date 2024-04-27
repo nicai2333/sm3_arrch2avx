@@ -47,11 +47,20 @@ static const uint32_t Tj[] = {
 int j=0;
 
 //turn right
-#define ROR32(x, n) vreinterpretq_u32_u8( \
-                    vorrq_u8( \
-                        vshrq_n_u8(vextq_u8(vreinterpretq_u8_u32(x), vreinterpretq_u8_u32(x), (32 - n) / 8), n % 8), \
-                        vshlq_n_u8(vextq_u8(vreinterpretq_u8_u32(x), vreinterpretq_u8_u32(x), (32 - (n % 8)) / 8), 8 - (n % 8)) \
-                    ))
+uint32x4_t ROR32(uint32x4_t input, int shift) {
+    const int n = shift % 32;
+    const int m = 32 - n;
+    
+    uint8x16_t temp = vreinterpretq_u8_u32(input);
+    //uint8x16_t rotated = vextq_u8(temp, temp, m / 8);
+    
+    uint8x16_t shifted_left = vshlq_n_u8(temp, n );
+    uint8x16_t shifted_right = vshrq_n_u8(temp, m );
+    
+    uint8x16_t result = vorrq_u8(shifted_left, shifted_right);
+    
+    return vreinterpretq_u32_u8(result);
+}
 
 uint32_t rotate_right(uint32_t n, int shift) {
     return (n >> 17) | (n << (32 - 17));
