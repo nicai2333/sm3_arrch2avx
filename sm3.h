@@ -21,6 +21,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include "config.h"
 
 #define SM3_OK    0
 #define SM3_ERR  -1
