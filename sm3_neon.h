@@ -61,6 +61,18 @@ uint32_t rotate_right(uint32_t n, int shift) {
     return (n >> shift) | (n << (32 - shift));
 }
 
+void Print(uint32_t A, uint32_t B, uint32_t C, uint32_t D,uint32_t E, uint32_t F, uint32_t G, uint32_t H){
+    printf("%08x, %08x, %08x, %08x, %08x, %08x, %08x, %08x\n", A,B,C,D,E,F,G,H);
+}
+
+void print_uint32x4(uint32x4_t v) { 
+    uint32_t W0 = vgetq_lane_u32(v, 0);  // 将向量中的值存储到数组中 
+    uint32_t W1 = vgetq_lane_u32(v, 1);
+    uint32_t W2 = vgetq_lane_u32(v, 2);
+    uint32_t W3 = vgetq_lane_u32(v, 3);
+    printf("[ %08x, %08x, %08x, %08x ]\n", W0, W1, W2, W3); // 打印数组中的值 
+}
+
 void circular_shift(uint32x4_t *M0, uint32x4_t *M1, uint32x4_t *M2, uint32x4_t *M3) {
     uint32x4_t first_element = *M0;  // 保存第一个元素
         *M0 = *M1;  // 后面的元素向前移动一个位置
@@ -129,7 +141,7 @@ uint32x4_t *XFER, uint32x4_t *XTMP0, uint32x4_t *XTMP1,uint32x4_t *XTMP2, uint32
     *B = rotate_right(*B, 23);                                             // B <<< 9
     t1 = t4 + t5;                                                  // GG(E, F, G) + SS1
     *XTMP2 = veorq_u32(*XTMP2, *X0);                                 // (W[-9],W[-8],W[-7],W[-6]) ^ (W[-16],W[-15],W[-14],W[-13])
-    W = vgetq_lane_u32(*X0, 1);                                    // WW[-15], assuming correction needed
+    W = vgetq_lane_u32(*XFER, 1);                                    // WW[-15], assuming correction needed
     t2 = t0 ^ t4;                                                 // SS2
     *H = *H + t1;                                                      // TT2 = GG(E, F, G) + H + SS1 + Wj
     *F = rotate_right(*F, 13);                                             // F <<< 19
@@ -165,7 +177,7 @@ uint32x4_t *XFER, uint32x4_t *XTMP0, uint32x4_t *XTMP1,uint32x4_t *XTMP2, uint32
     *B = rotate_right(*B, 23);                                           // B <<< 9
     t1 = t4 + t5;                                               // GG(E, F, G) + SS1
     *XTMP5 = veorq_u32(*XTMP4, *XTMP5);                            // P1(X), X << 23 ^ X >> 9
-    W = vgetq_lane_u32(*X0, 2);                                  // WW[-14], assuming correction needed
+    W = vgetq_lane_u32(*XFER, 2);                                  // WW[-14], assuming correction needed
     t2 = t0 ^ t4;                                               // SS2
     *H = *H + t1;                                                    // TT2 = GG(E, F, G) + H + SS1 + Wj
     *F = rotate_right(*F, 13);                                           // F <<< 19
@@ -499,7 +511,7 @@ void THIRD_12_ROUNDS_WITHOUT_SCHED_3(uint32x4_t *X0, uint32x4_t *X1, uint32x4_t 
     *H = *H + W;                // H + Wj
     t4 = rotate_right(t4, 25);                 // SS1
     t5 = t5 ^ *G;              // GG(E, F, G)
-    D = t1 + D;               // FF(A, B, C) + D
+    *D = t1 + *D;               // FF(A, B, C) + D
     *B = rotate_right(*B, 23);                   // B <<< 9
     t1 = t4 + t5;             // GG(E, F, G) + SS1
     W = vgetq_lane_u32(*XFER, 2); // Extracting the third 32-bit integer from *XFER vector
@@ -534,7 +546,7 @@ void THIRD_12_ROUNDS_WITHOUT_SCHED_4(uint32x4_t *X0, uint32x4_t *X1, uint32x4_t 
     *H = *H + W;                  // H + Wj
     t4 = rotate_right(t4, 25);             // SS1
     t5 = t5 ^ *G;                // GG(E, F, G)
-    D = t1 + D;                 // FF(A, B, C) + D
+    *D = t1 + *D;                 // FF(A, B, C) + D
     *B = rotate_right(*B, 23);               // B <<< 9
     t1 = t4 + t5;               // GG(E, F, G) + SS1
     W = vgetq_lane_u32(*XFER, 3);  // WW[-16]
@@ -571,7 +583,7 @@ void sm3_compress_neon(uint32_t digest[8], const uint8_t *buf, uint64_t nb) {
     E = e;
     F = f;
     G = g;
-    F = h;
+    H = h;
 
 
     // 主压缩循环
