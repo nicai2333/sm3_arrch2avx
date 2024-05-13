@@ -36,47 +36,23 @@
 #define ORDER_BIG_ENDIAN     0
 #define ORDER_LITTLE_ENDIAN  1
 
-#if defined(BUILD_STATIC)
-# define PIGGY_EXPORT
-#else
-# if defined(_MSC_VER)
-#  if defined(BUILD_SHARED)
-#   define PIGGY_EXPORT __declspec(dllexport)
-#  else
-#   define PIGGY_EXPORT __declspec(dllimport)
-#  endif
-# elif (defined(__GNUC__) && __GNUC__>= 4)
-#  define PIGGY_EXPORT __attribute__ ((visibility ("default")))
-# else
-#  define PIGGY_EXPORT
-# endif
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     u8 buf[SM3_BLOCK_SIZE];  // hold last few bytes that have not been processed
     u32 digest[8];           // ...
     size_t bits;             // number of bits compressed
 } SM3_CTX;
 
-PIGGY_EXPORT const char* sm3_get_impl_name();
+const char* sm3_get_impl_name();
 
-PIGGY_EXPORT int sm3_init(SM3_CTX *ctx);
+int sm3_init(SM3_CTX *ctx);
 
-PIGGY_EXPORT int sm3_update(SM3_CTX *ctx, const u8* data, size_t datalen);
+int sm3_update(SM3_CTX *ctx, const u8* data, size_t datalen);
 
-PIGGY_EXPORT int sm3_final(u8 *digest, SM3_CTX *ctx);
+int sm3_final(u8 *digest, SM3_CTX *ctx);
 
-PIGGY_EXPORT void sm3_clean(SM3_CTX *sm3_ctx);
+void sm3_clean(SM3_CTX *sm3_ctx);
 
-PIGGY_EXPORT int sm3_once(u8 digest[SM3_DIGEST_LENGTH], const u8 *msg, size_t msglen);
-
-#ifdef __cplusplus
-}
-#endif
+int sm3_once(u8 digest[SM3_DIGEST_LENGTH], const u8 *msg, size_t msglen);
 
 uint32_t ll_bswap4(uint32_t a);
 uint64_t ll_bswap8(uint64_t a);
