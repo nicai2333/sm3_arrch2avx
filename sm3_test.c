@@ -41,23 +41,18 @@ static SM3_TEST_VECTOR sm3_test_vec[] =
     },
     /* 3 */
     {
-        "Fed launches unlimited QE, but markets keep falling - as it happened",
-        "45f5f7e2b7e7cdef2bc0766e193754e1875830b44e067d3bcc71304721875da8",
+        "hello world",
+        "44f0061e69fa6fdfc290c494654a05dc0c053da7e5c52b84ef93a9d67d3fff88",
     },
     /* 4 */
     {
-        "A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution",
-        "08c7dd4278a47bac588686088f2ea7c68ebdf297ca8a0d1fab08929c37fb68d5",
+        "Crazy Thursday",
+        "27542186a1f429c4e6ed751712844b433d8b33ad8edd05f7f5f1fb0c682ee51b",
     },
     /* 5 */
     {
-        "Bitcoin is a collection of of concepts and technologies that form the basis of a digital money ecosystem",
-        "a3fd2167b9c72b3858f5a9441db93947146a7ee8597d042318da1d7fb0e42712",
-    },
-    /* 6 */
-    {
-        "My name is MengShan Jiang",
-        "b7d7e3db6ff6adf93148a65463c5632f19fffd9cd6f4b9ea2a3aa19bd5f99cd1",
+        "Happy birthday to you Happy birthday to you Happy birthday happy birthday Happy birthday to you",
+        "4ec61390d1a923782db0f3bcebb6609bad81e3d3479ce229f6c4f3cf1a300024",
     },
 };
 
